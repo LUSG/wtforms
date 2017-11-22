@@ -122,15 +122,29 @@ class NumberRange(object):
         interpolated using `%(min)s` and `%(max)s` if desired. Useful defaults
         are provided depending on the existence of min and max.
     """
-    def __init__(self, min=None, max=None, message=None):
+    def __init__(self, min=None, max=None, message=None, required_if_data=False):
         self.min = min
         self.max = max
         self.message = message
+        self.require = required_if_data
 
     def __call__(self, form, field):
         data = field.data
-        if data is None or (self.min is not None and data < self.min) or \
+        if data is not None and isinstance(data, str):
+            if data.isdigit():
+                data = int(data)
+            else:
+                try:
+                    data = float(data)
+                except ValueError:
+                    pass
+
+        if data is None or not isinstance(data, (int, float)) or \
+                (self.min is not None and data < self.min) or \
                 (self.max is not None and data > self.max):
+            if self.require and data is None:
+                return
+
             message = self.message
             if message is None:
                 # we use %(min)s interpolation to support floats, None, and
